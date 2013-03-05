@@ -1,0 +1,30 @@
+#!/bin/bash
+FESTIVALCMD="text2wave|aplay"
+HOST=samleathers.com
+USER=disirc
+
+if [ ! -f ~/.growltime ]
+then
+  perl -e "print time - 60" > ~/.growltime
+fi
+
+(ssh $USER@$HOST -o PermitLocalCommand=no \
+"> .weechat/fnotify; tail -f .weechat/fnotify" |
+while read channel user message; do
+  TIME=`cat ~/.growltime`
+  BUFFER=`perl -e "print 60 < (time - $TIME)"`
+  if [ "x$BUFFER" == "x1" ]
+  then
+    perl -e "print time" > ~/.growltime
+    echo $user|grep '^(' > /dev/null
+    if [[ $? == 0 ]]
+    then
+      echo Message from $user in channel $channel|eval $FESTIVALCMD &> /dev/null
+    else
+      echo Message from $channel|eval $FESTIVALCMD &> /dev/null
+    fi
+  fi
+done)&
+TALK=$!
+ssh $USER@$HOST
+kill $TALK
