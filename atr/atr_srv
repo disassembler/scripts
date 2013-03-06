@@ -1,0 +1,41 @@
+#!/bin/bash
+source ~/.atr_config
+while netstat -an | grep "^.*\.${PORTA}.*LISTEN.*$" > /dev/null
+do
+  PORTA=$(( ${PORTA} + 1 ))
+done
+
+NAGIOS=$(( ${PORTA} + 1 ))
+while netstat -an | grep "^.*\.${NAGIOS}.*LISTEN.*$" > /dev/null
+do
+  NAGIOS=$(( ${NAGIOS} + 1 ))
+done
+
+WIKI=$(( ${NAGIOS} + 1 ))
+while netstat -an | grep "^.*\.${WIKI}.*LISTEN.*$" > /dev/null
+do
+  WIKI=$(( ${WIKI} + 1 ))
+done
+
+IRC=$(( ${WIKI} + 1 ))
+while netstat -an | grep "^.*\.${IRC}.*LISTEN.*$" > /dev/null
+do
+  IRC=$(( ${IRC} + 1 ))
+done
+echo "NAGIOS: $NAGIOS"
+echo "WIKI: $WIKI"
+echo "IRC: $IRC"
+
+ssh -C -N -L $PORTA:$GATEWAY2:22 -p $GATEWAY1_PORT $GATEWAY1 &
+GATEWAY1_PID=$! 
+sleep 2
+ssh -C -N \
+  -L $NAGIOS:capefur:443 \
+  -L $IRC:bajafur:6697 \
+  -L $WIKI:bull:80 \
+  -p $PORTA localhost & 
+GATEWAY2_PID=$!
+echo -n Press Return when finished
+read
+kill $GATEWAY2_PID
+kill $GATEWAY1_PID

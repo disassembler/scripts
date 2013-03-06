@@ -1,0 +1,26 @@
+#!/bin/bash
+SRV_HOST=$1
+source ~/.atr_config
+while netstat -an | grep "^.*\.${PORTA}.*LISTEN.*$" > /dev/null
+do
+  PORTA=$(( ${PORTA} + 1 ))
+done
+PORTB=$(( ${PORTA} + 1 ))
+while netstat -an | grep "^.*\.${PORTB}.*LISTEN.*$" > /dev/null
+do
+  PORTB=$(( ${PORTB} + 1 ))
+done
+
+echo "PORTA: $PORTA"
+echo "PORTB: $PORTB"
+echo "HOST: $HOST"
+
+ssh -C -N -L $PORTA:$GATEWAY2:22 -p $GATEWAY1_PORT $GATEWAY1 &
+GATEWAY1_PID=$!
+sleep 3
+ssh -C -N -L $PORTB:$HOST:22 -p $PORTA localhost &
+GATEWAY2_PID=$!
+sleep 3
+ssh -L 3389:$SRV_HOST:3389 -p $PORTA localhost
+kill $GATEWAY2_PID
+kill $GATEWAY1_PID

@@ -1,0 +1,8 @@
+#!/bin/bash
+export LINUX=
+export WINDOWS=
+export SYNERGY_HOST=
+export PORTA=
+export GATEWAY1=
+export GATEWAY1_PORT=
+export GATEWAY2=

@@ -1,0 +1,51 @@
+#!/bin/bash
+source ~/.atr_config
+FESTIVALCMD="say"
+
+if [ ! -f ~/.growltime ]
+then
+  perl -e "print time - 60" > ~/.growltime
+fi
+
+while netstat -an | grep "^.*\.${PORTA}.*LISTEN.*$" > /dev/null
+do
+  PORTA=$(( ${PORTA} + 1 ))
+done
+PORTB=$(( ${PORTA} + 1 ))
+while netstat -an | grep "^.*\.${PORTB}.*LISTEN.*$" > /dev/null
+do
+  PORTB=$(( ${PORTB} + 1 ))
+done
+
+echo "PORTA: $PORTA"
+echo "PORTB: $PORTB"
+echo "LINUX: $LINUX"
+
+ssh -C -N -L $PORTA:$GATEWAY2:22 -p $GATEWAY1_PORT $GATEWAY1 &
+GATEWAY1_PID=$!
+sleep 3
+ssh -C -N -L $PORTB:$LINUX:22 -p $PORTA localhost &
+GATEWAY2_PID=$!
+sleep 3
+(ssh -p $PORTB localhost -o PermitLocalCommand=no \
+"> .weechat/fnotify; tail -f .weechat/fnotify" |
+while read channel user message; do
+  TIME=`cat ~/.growltime`
+  BUFFER=`perl -e "print 60 < (time - $TIME)"`
+  if [ "x$BUFFER" == "x1" ]
+  then
+    perl -e "print time" > ~/.growltime
+    echo $user|grep '^(' > /dev/null
+    if [[ $? == 0 ]]
+    then
+      echo Message from $user in channel $channel|eval $FESTIVALCMD &> /dev/null
+    else
+      echo Message from $channel|eval $FESTIVALCMD &> /dev/null
+    fi
+  fi
+done)&
+TALK=$!
+ssh -p $PORTB localhost 
+kill $TALK
+kill $GATEWAY2_PID
+kill $GATEWAY1_PID
